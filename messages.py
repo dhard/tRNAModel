@@ -1,68 +1,85 @@
 import numpy as np
 
 class Messages(object):
-    def __init__(self, code, site_types, message_mutation_matrix):
-        self._site_types = site_types
+    def __init__(self, coding_matrix, fitness_matrix, message_mutation_matrix):
+        if coding_matrix.shape[1] != fitness_matrix.shape[1]:
+            raise ValueError("There must be as many amino acids in the coding matrix as there are "
+                             "in the fitness matrix.")
 
-        self._code = code
+        if message_mutation_matrix.shape[0] != coding_matrix.shape[0] or \
+           message_mutation_matrix.shape[1] != coding_matrix.shape[0]:
+            raise ValueError("The message mutation matrix must be square and have as many"
+                             "codons as the coding matrix.")
+
+        if not np.allclose(1.0, coding_matrix.sum(axis=0)):
+            raise ValueError("All rows in the coding matrix must sum to 1.")
+
+        if not np.allclose(1.0, message_mutation_matrix.sum(axis=0)):
+            raise ValueError("All rows in the message mutation matrix must sum to 1.")
+
+        self._code = coding_matrix
+        self._fitness_matrix = fitness_matrix
         self._message_mutation_matrix = message_mutation_matrix
-        
-        self._equilibrium_codon_usage = None
-        self._equilibrium_fitness_contributions = None
 
-        self._num_sites = len(site_types.sites)
-        self._num_codons = code.code_matrix.shape[0]
+        self._last_codon_usage = None
+        self._last_fitness_contributions = None
 
-    def get_equilibrium_codon_usage(self):
-        if self._equilibrium_codon_usage is None:
-            self._calculate_equilibrium_codon_usage()
+    @property
+    def codon_usage(self):
+        if self._last_codon_usage is None:
+            self.calculate_at_equilibrium()
 
-        return self._equilibrium_codon_usage.copy()
+        return self._last_codon_usage
 
-    def get_equilibrium_fitness_contributions(self):
-        if self._equilibrium_fitness_contributions is None:
-            self._calculate_equilibrium_codon_usage()
+    @property 
+    def fitness_contributions(self):
+        if self._last_fitness_contributions is None:
+            self.calculate_at_equilibrium()
 
-        return self._equilibrium_fitness_contributions.copy()
+        return self._last_fitness_contributions
 
-    def get_mutation_selection_matrix(self, site):
-        fitness_matrix = self._site_types.fitness_matrix
-        code = self._code.effective_matrix
+    def calculate_at_equilibrium(self):
+        num_sites = self._fitness_matrix.shape[0]
+        num_codons = self._code_matrix.shape[0]
+        self._last_codon_usage = np.zeros((num_sites, num_codons))
+        self._last_fitness_contributions = np.zeros((num_sites, 1))
 
-        # Eq4 of SellaArdell06
-        selection_matrix = np.diag(code.dot(fitness_matrix[site]))
-        return self._message_mutation_matrix.dot(selection_matrix)
-
-    def _calculate_equilibrium_codon_usage(self):
-        effective_code = self._code.effective_matrix
-        num_codons = effective_code.shape[1]
-
-        self._equilibrium_codon_usage = np.zeros((self._num_sites, self._num_codons))
-        self._equilibrium_fitness_contributions = np.zeros((self._num_sites, 1))
-
-        for site in xrange(self._num_sites):
-            # Gets the eigenvector u_{c} and eigenvalue lambda of the site given by the index
-            # from Eq3 of SellaArdell06 and stores them in the equilibrium variables
-            mutation_selection_matrix = self.get_mutation_selection_matrix(site)
+        for site in xrange(num_sites):
+            mutation_selection_matrix = self._mutation_selection_matrix(site)
 
             eig_values, eig_vectors = np.linalg.eig(mutation_selection_matrix)
             maxi = np.argmax(eig_values)
             eig_vector = eig_vectors[:,maxi]
             eig_vector /= eig_vector.sum()
             
-            self._equilibrium_codon_usage[site] = eig_vector
-            self._equilibrium_fitness_contributions[site] = eig_values[maxi]
-        
-    def fitness_contributions_at_codon_usage(self, codon_usage):
-        fitness_matrix = self._site_types.fitness_matrix
-        code_matrix = self._code.effective_matrix
-        
-        fitness_contributions = np.zeroes(self._num_sites)
-        for site in xrange(self._num_sites):
+            self._last_codon_usage[site] = eig_vector
+            self._last_fitness_contributions[site] = eig_values[maxi]
+
+        self._last_codon_usage.setflags(write=False)
+        self._last_fitness_contributions.setflags(write=False)
+
+    def calculate_at_codon_usage(self, codon_usage):
+        num_sites = self._fitness_matrix.shape[0]
+        num_codons = self._code_matrix.shape[0]
+
+        if codon_usage.shape != (num_sites, num_codons):
+            raise ValueError("The codon usage matrix does not match the coding matrix "
+                             "or fitness matrix.")
+
+        self._last_codon_usage = codon_usage
+        self._last_fitness_contributions = np.zeros((num_sites, 1))
+
+        for site in xrange(num_sites):
             contribution = 0.0
-            for beta in xrange(self._num_sites):
-                for j in xrange(self._num_sites):
+            for beta in xrange(num_sites):
+                for j in xrange(num_sites):
                     contribution += fitness_matrix[site, beta] * code[j, beta] * codon_usage[site, j]
             fitness_contributions[site] = contribution
 
-        return fitness_contributions
+        self._last_codon_usage.setflags(write=False)
+        self._last_fitness_contributions.setflags(write=False)
+
+    def _mutation_selection_matrix(self, site):
+        """ Eq4 of SellaArdell06 """
+        selection_matrix = np.diag(self._code.dot(self._fitness_matrix[site]))
+        return self._message_mutation_matrix.dot(selection_matrix)

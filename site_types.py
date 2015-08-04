@@ -1,62 +1,78 @@
 from abc import ABCMeta, abstractmethod
 import numpy as np
+from collections import OrderedDict
+from copy import copy
 
-class Site_Types(object):
+class _Site_Types(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, phi, sites, site_weights):
-        assert 0 < phi < 1, "Intensity of selection (phi) must be between 0 and 1."
-        assert all([weight >= 1 for weight in site_weights]), "Site weights must 1 or larger"
+    def __init__(self, phi, amino_acids, sites, weights):
+        if not 0 < phi < 1:
+            raise ValueError("The domain of phi is (0,1).")
 
-        assert len(sites) == len(site_weights), "There must be the same number of site weights as sites."
+        if len(weights) != len(sites):
+            raise ValueError("There must be a weight for every site.")
 
-        self._sites = tuple(sites)
-        self._site_weights = tuple(site_weights)
+        if any(map(lambda weight: weight < 1, weights)):
+            raise ValueError("Every site weight must be greater than 1.")
+
+        if len(set(map(lambda site: site[0], sites))) != len(sites):
+            raise ValueError("All sites must have unique names.")
+
+        if len(set(map(lambda aa: aa[0], amino_acids))) != len(amino_acids):
+            raise ValueError("All amino acids must have unique names.")
+
         self._phi = phi
-
-        self._distance_matrix = None
-        self._fitness_matrix = None
-
-    def _calculate_distance_matrix(self):
-        self._distance_matrix = np.array([[self.calculate_distance(alpha, beta) for beta in self.sites]
-                                          for alpha in self.sites]) # Ring space from cmcpy
-
-        self._fitness_matrix = self.phi ** self._distance_matrix # Eq1 SellaArdell06
-
-    @abstractmethod
-    def calculate_distance(self, alpha, beta):
-        pass
-
-    @property
-    def distance_matrix(self):
-        if self._distance_matrix is None:
-            self._calculate_distance_matrix()
-
-        return self._distance_matrix.copy()
+        self._weights = weights
+        self._sites = OrderedDict(sites)
+        self._aas = OrderedDict(amino_acids)
+        
+        self._build_matrices()
 
     @property
     def fitness_matrix(self):
-        if self._fitness_matrix is None:
-            self._calculate_distance_matrix()
-
-        return self._fitness_matrix.copy()
+        return self._fitness_matrix
 
     @property
-    def site_weights(self):
-        return self._site_weights
+    def distance_matrix(self):
+        return self._distance_matrix
 
     @property
-    def sites(self):
-        return self._sites
+    def weights(self):
+        return self._weights
 
     @property
     def phi(self):
         return self._phi
 
-class Ring_Site_Types(Site_Types):
-    def __init__(self, phi, sites, site_weights):
-        super(Ring_Site_Types, self).__init__(phi, sites, site_weights)
+    @property
+    def sites(self):
+        return copy(self._sites)
 
-    def calculate_distance(self, alpha, beta):
-        return min(abs(alpha - beta), (1 - abs(alpha - beta))) # Ring space from cmcpy
+    @property
+    def aas(self):
+        return copy(self._aas)
+
+    def _build_matrices(self):
+        self._distance_matrix = np.array([[self.distance(site, aa) for aa in self._aas.values()]
+                                          for site in self._sites.values()], dtype=np.float)
+
+        self._fitness_matrix = self.phi ** self._distance_matrix
+
+        # Make the matrices read only so that they can be passed
+        # without needing to make a copy
+        self._distance_matrix.setflags(write=False)
+        self._fitness_matrix.setflags(write=False)
+
+    @abstractmethod
+    def distance(self, site, amino_acid):
+        pass
+        
+class Ring_Site_Types(_Site_Types):
+    def __init__(self, phi, amino_acids, sites, weights):
+        super(Ring_Site_Types, self).__init__(phi, amino_acids, sites, weights)
+
+    def distance(self, site, amino_acid):
+        return min(abs(site - amino_acid), (1 - abs(site - amino_acid))) # Ring space from cmcpy
+
 
