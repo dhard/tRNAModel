@@ -11,10 +11,10 @@ class Messages(object):
             raise ValueError("The message mutation matrix must be square and have as many"
                              "codons as the coding matrix.")
 
-        if not np.allclose(1.0, coding_matrix.sum(axis=0)):
+        if not np.allclose(1.0, coding_matrix.sum(axis=1)):
             raise ValueError("All rows in the coding matrix must sum to 1.")
 
-        if not np.allclose(1.0, message_mutation_matrix.sum(axis=0)):
+        if not np.allclose(1.0, message_mutation_matrix.sum(axis=1)):
             raise ValueError("All rows in the message mutation matrix must sum to 1.")
 
         self._code = coding_matrix

@@ -12,7 +12,7 @@ class AARS_Space(object):
             raise ValueError("There must be as many AARS names as there are AARSs in the "
                              "mutation matrix.")
             
-        if not np.allclose(1.0, aars_mutation_matrix.sum(axis=0)):
+        if not np.allclose(1.0, aars_mutation_matrix.sum(axis=1)):
             raise ValueError("All rows must sum to 1 in the mutation matrix.")
 
         self._aars_aa_mapping = aars_aa_mapping

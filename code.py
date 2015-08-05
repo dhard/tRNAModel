@@ -103,3 +103,7 @@ class Code(object):
 
     def __eq__(self, other):
         return hash(self) == hash(other)
+
+    def __str__(self):
+        return ','.join([self._trna_space.names[trna_id] for trna_id in self._trnas] + \
+                        [self._aars_space.names[aars_id] for aars_id in self._aarss])
