@@ -1,0 +1,84 @@
+* Model
+  In the model there is:
+  C Codons
+  T tRNAs
+  R AARSs
+  A Amino acids
+  N Site Types
+  
+  F, an N x A fitness matrix
+  O, an C x T codon-tRNA mapping
+  S, an T x R tRNA-AARS mapping
+  M, an R x A AARS-Amino acid mapping
+  
+  
+  The fitness matrix gives of the fitness of amino acid 'i' in a site type 'n'.
+  
+  The codon- tRNA mapping gives the probability tRNA 't' is used at a codon 'c'.
+  
+  The tRNA-AARS mapping gives the probability tRNA 't' is charged by AARS 'r'.
+  
+  The AARS-Amino acid mapping gives the probability AARS 'r' uses a amino acid 'm' when charging.
+  
+  
+  Coding matrix:
+  dot(O, S) = dot(C x T, T x R)
+  dot(dot(O, S), M) = dot(dot(C x T, T x R), R x A) -> The chance amino acid 'm' is used at codon 'c'.
+
+* Implementation overview
+** Program structure
+                                               --<-(uses)--<--
+   AARS_Space -----\                          /               \
+                    > Code <------------ Messages         Evolver
+   TRNA_Space -----/    \----------+-----------/
+                                   |          /
+   Site_Types ---------------------+---------/
+
+** Site_Types
+   Requires pchem values for N site types and the pchem values for A amino acids, the weight of
+   each site, and the intensity of selection, phi.
+
+   Contains the distance and fitness matrices and site weights.
+
+** AARS_Space
+   Requires a list of AARS names that is R long, a R x R mutation matrix giving the probability of
+   AARS 'i' mutating into AARS 'j', a R x A charging matrix giving the probabilty AARS 'i' uses
+   amino acid 'm' when charging a tRNA.
+
+   This class serves as a place holder for the matrices/vectors described above.
+
+** TRNA_Space
+   Requires a list of tRNA names that is T long, a T x T mutation matrix giving the probability of
+   tRNA 'i' mutating into tRNA 'j', a T x R charging matrix giving the probabilty AARS 'r' charges
+   tRNA 't'.
+
+   This class serves as a place holder for the matrices/vectors described above.
+
+** Messages
+   Requires a coding matrix giving the probability of amino acid 'm' being used at codon 'c',
+   a message mutation matrix shaped C x C giving the probability of codon 'i' in the message,
+   mutating into codon 'j', and the fitness matrix.
+
+   This class lazily calculates the fitness contribution of a codon usage and the equilibrium
+   codon usage.
+
+** Code
+   Requires a list of tRNAs and AARSs, and the tRNA and AARS spaces.
+
+   This class lazily calculates the coding matrix for the given set of tRNAs and AARSs, as well as
+   other information such as the set of encoded/unencoded tRNAs and AARSs.
+
+** Code_Mutator
+   Requires the AARS and tRNA mutation matrices, the list of AARS and tRNA names, and a 
+   reference code to base the mutation probabilities from.
+
+   This class calculates all potential code mutates and the probability to go from the given
+   code to any of those mutate codes.
+
+** Evolver
+   Requires a AARS Space, tRNA Space, message mutation matrix, Site types, a code mutator,
+   and the initial code.
+
+   This class uses the fitness of each code to calculate transition probabilities from
+   the current/initial code to a mutate code and then replaces the current code with
+   whatever mutant code was randomly selected using the transition probabilities as weights.
