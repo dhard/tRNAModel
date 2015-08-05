@@ -1,3 +1,5 @@
+* View this file via raw, github messes up the formatting
+
 * Model
   In the model there is:
   C Codons
