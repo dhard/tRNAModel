@@ -40,7 +40,7 @@ class Messages(object):
 
     def calculate_at_equilibrium(self):
         num_sites = self._fitness_matrix.shape[0]
-        num_codons = self._code_matrix.shape[0]
+        num_codons = self._code.shape[0]
         self._last_codon_usage = np.zeros((num_sites, num_codons))
         self._last_fitness_contributions = np.zeros((num_sites, 1))
 
@@ -60,7 +60,11 @@ class Messages(object):
 
     def calculate_at_codon_usage(self, codon_usage):
         num_sites = self._fitness_matrix.shape[0]
-        num_codons = self._code_matrix.shape[0]
+        num_aas = self._code.shape[1]
+        num_codons = self._code.shape[0]
+
+        if not np.allclose(1.0, codon_usage.sum(axis=1)):
+            raise ValueError("The codon usage matrix must have every row sum to 1.")
 
         if codon_usage.shape != (num_sites, num_codons):
             raise ValueError("The codon usage matrix does not match the coding matrix "
@@ -71,10 +75,10 @@ class Messages(object):
 
         for site in xrange(num_sites):
             contribution = 0.0
-            for beta in xrange(num_sites):
-                for j in xrange(num_sites):
-                    contribution += fitness_matrix[site, beta] * code[j, beta] * codon_usage[site, j]
-            fitness_contributions[site] = contribution
+            for beta in xrange(num_aas):
+                for j in xrange(num_codons):
+                    contribution += self._fitness_matrix[site, beta] * self._code[j, beta] * codon_usage[site, j]
+            self._last_fitness_contributions[site] = contribution
 
         self._last_codon_usage.setflags(write=False)
         self._last_fitness_contributions.setflags(write=False)

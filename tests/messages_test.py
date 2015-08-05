@@ -12,7 +12,9 @@ codons = cmcpy.codon_spaces.RingCodonSpace(num_codons = 8, mu = 0.02)
 aas = cmcpy.amino_acid_spaces.RingAminoAcidSpace(coords = [0.05,0.15,0.24,0.41,0.44,0.51,0.54,0.79,0.83,0.92])
 cmc_site_types = cmcpy.site_type_spaces.MirroringSiteTypeSpace(amino_acids = aas, phi = 0.25)
 initial_code = cmcpy.genetic_codes.InitiallyAmbiguousGeneticCode(codons = codons,amino_acids = aas)
-cmc_evolver = cmcpy.evolvers.ArdellSellaEvolverNumpy(initial_code = initial_code, site_types = cmc_site_types, num_processes = 4,  delta = 1e-16, epsilon = 1e-16, observables = cmcpy.observables.Observables())
+cmc_evolver = cmcpy.evolvers.ArdellSellaEvolverNumpy(initial_code = initial_code, site_types = cmc_site_types,
+                                                     num_processes = 4,  delta = 1e-16, epsilon = 1e-16,
+                                                     observables = cmcpy.observables.Observables())
 
 correct_mutation_selection_matrices = np.array([cmc_evolver.get_mutation_selection_matrix(i) for i in xrange(10)])
 
@@ -22,6 +24,9 @@ cmc_evolver.equilibrate_messages()
 
 correct_equilibrium_codon_usage = cmc_evolver.eigenmatrix
 correct_equilibrium_fitness_contributions = cmc_evolver.eigenvalues
+correct_nonequilibrium_fitness = cmc_evolver.compute_code_fitness_given_messages(nonequilibrium_codon_usage,
+                                                                                  np.ones((8,10)) / 10)
+
 """
 correct_mutation_selection_matrices = np.array([[[ 0.68481941,  0.01426707,  0.        ,  0.        ,  0.        ,
                                                    0.        ,  0.        ,  0.01426707],
@@ -206,15 +211,19 @@ correct_equilibrium_fitness_contributions = np.array([[ 0.71335355],
                                                       [ 0.72257372],
                                                       [ 0.7099553 ]])
 
-class Test_Code(Code):
-    """ Creates an ambiguous genetic code for testing purposes. """
-    def __init__(self, genetic_code, misreading_matrix):
-        super(Test_Code, self).__init__(genetic_code, misreading_matrix)
 
-    def build_code_matrix(self):
-        self._code_matrix = np.ones((8, 10)) / 10
-        self._effective_code_matrix = self._code_matrix
-        super(Test_Code, self).build_code_matrix()
+nonequilibrium_codon_usage = np.array([[ 0.000,  0.000,  0.375,  0.125,  0.125,  0.125,  0.125,  0.125],
+                                       [ 0.125,  0.125,  0.125,  0.125,  0.125,  0.125,  0.125,  0.125],
+                                       [ 0.125,  0.125,  0.125,  0.130,  0.120,  0.125,  0.125,  0.125],
+                                       [ 0.125,  0.125,  0.125,  0.125,  0.125,  0.125,  0.125,  0.125],
+                                       [ 0.125,  0.100,  0.125,  0.125,  0.150,  0.125,  0.125,  0.125],
+                                       [ 0.125,  0.125,  0.125,  0.125,  0.125,  0.125,  0.125,  0.125],
+                                       [ 0.125,  0.125,  0.125,  0.125,  0.125,  0.125,  0.125,  0.125],
+                                       [ 0.125,  0.125,  0.125,  0.150,  0.120,  0.105,  0.125,  0.125],
+                                       [ 0.125,  0.125,  0.125,  0.125,  0.125,  0.125,  0.125,  0.125],
+                                       [ 0.125,  0.125,  0.125,  0.125,  0.125,  0.125,  0.125,  0.125]])
+
+correct_nonequilibrium_fitness = 0.042617989729540708
 
 class Messages_Test(unittest.TestCase):
     def setUp(self):
@@ -227,18 +236,18 @@ class Messages_Test(unittest.TestCase):
                                          [ 0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.02,  0.96,  0.02],
                                          [ 0.02,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.02,  0.96]])
 
-        self.site_types = Ring_Site_Types(.25, [0.05,0.15,0.24,0.41,0.44,0.51,0.54,0.79,0.83,0.92], 
-                                          [1] * 10)
+        pchem_vals = [0.05,0.15,0.24,0.41,0.44,0.51,0.54,0.79,0.83,0.92]
+        site_ids = range(10)
+        aa_ids = range(10)
+        self.site_types = Ring_Site_Types(.25, zip(aa_ids, pchem_vals), zip(site_ids, pchem_vals), [1] * 10)
         
-        self.code = Test_Code(None, None)
-
-        self.codon_usage = None
+        self.code_matrix = np.ones((8,10)) / 10
 
         self.fitness_contributions = None
-        self.message = Messages(self.code, self.site_types, self.mutation_matrix)
+        self.message = Messages(self.code_matrix, self.site_types.fitness_matrix, self.mutation_matrix)
 
     def test_mutation_selection_matrix(self):
-        mutation_selection_matrices = [self.message.get_mutation_selection_matrix(i) for i in xrange(10)]
+        mutation_selection_matrices = [self.message._mutation_selection_matrix(i) for i in xrange(10)]
 
         for i in xrange(10):
             self.assertTrue(np.allclose(mutation_selection_matrices[i],
@@ -246,19 +255,18 @@ class Messages_Test(unittest.TestCase):
                             msg="Mutation Selection matrix did not match for site index {}.".format(i))
     
     def test_equilibrium_codon_usage(self):
-        self.assertTrue(np.allclose(self.message.get_equilibrium_codon_usage(),
-                                    correct_equilibrium_codon_usage))
+        self.assertTrue(np.allclose(self.message.codon_usage, # Should default to calculating codon usage
+                                    correct_equilibrium_codon_usage)) # at equilibrium
 
     def test_equilibrium_fitness_contributions(self):
-        self.assertTrue(np.allclose(self.message.get_equilibrium_fitness_contributions(),
+        self.assertTrue(np.allclose(self.message.fitness_contributions, # Should also default to at equilibrium 
                                     correct_equilibrium_fitness_contributions))
 
-    def test_nonequilibrium_codon_usage(self):
-        self.assertTrue(False, msg="I still need to make this test.")
-
     def test_nonequilibrium_fitness_contributions(self):
-        self.assertTrue(False, msg="I still need to make this test.")
+        self.message.calculate_at_codon_usage(nonequilibrium_codon_usage)
+        fitness_contributions = self.message.fitness_contributions
 
+        self.assertAlmostEqual(correct_nonequilibrium_fitness, np.prod(fitness_contributions))
 
 if __name__ == '__main__':
     unittest.main()
