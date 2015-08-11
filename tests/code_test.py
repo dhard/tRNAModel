@@ -1,37 +1,30 @@
 import unittest
 import numpy as np
-from code import Bit_Code
+from code import Code
+from trna_space import TRNA_Space
+from aars_space import AARS_Space
+
 
 class Code_Test(unittest.TestCase):
-    def test_nonambiguous_code_matrix(self):
-        code1 = Bit_Code('11010011', 2, 2, 2, 2, None) 
-        code1_matrix = np.array([[0, 1], [.5, .5]])
+    def test_cmcpy_comparison(self):
+        """ Checks if the coding matrix generated is the same as
+            the one cmcpy generates. """
 
-        self.assertTrue(np.allclose(code1.code_matrix, code1_matrix))
-        self.assertTrue(np.allclose(code1.effective_matrix, code1_matrix))
+        # cmcpy equivalent code
+        # aas = cmcpy.amino_acid_spaces.RegionAminoAcidSpace(coords = [0.0085,0.0086,0.0886,0.0988,0.1005,0.1363,0.2879,0.3254,0.3424,0.3425,0.3816,0.3817,0.4497,0.5213,0.5963,0.6048,0.7513,0.8637,0.9608,0.9659])
+        # codons = cmcpy.codon_spaces.WordCodonSpace(num_bases = 4, num_positions = 2, mu = .01)
+        # initial_code = cmcpy.genetic_codes.InitiallyAmbiguousGeneticCode(codons = codons,amino_acids = aas)
+        # initial_code.get_code_matrix()
+        # Which is just
+        # numpy.ones((nc,na)) / na
+        # or in this case
+        # numpy.ones((16,20)) / 20
 
-    def test_ambiguous_code_matrix(self):
-        code1 = Bit_Code('11111111', 2, 2, 2, 2, None) 
-        code1_matrix = np.array([[.5, .5], [.5, .5]])
-        code2 = Bit_Code(None, 2, 2, 2, 2, None) # Completely ambiguous code by default
+        trna_space = TRNA_Space(range(20), np.diag([1] * 20), np.array([[1. / 20] * 20] * 16), np.diag([1] * 20))
+        aars_space = AARS_Space(range(20), np.diag([1] * 20), np.diag([1] * 20))
+        code = Code([1] * 16, range(20), trna_space, aars_space)
 
-        self.assertTrue(np.allclose(code1.code_matrix, code1_matrix))
-        self.assertTrue(np.allclose(code1.effective_matrix, code1_matrix))
-        
-        self.assertTrue(np.allclose(code2.code_matrix, code1_matrix))
-        self.assertTrue(np.allclose(code2.effective_matrix, code1_matrix))
-
-    def test_equals_operator(self):
-        case1 = Bit_Code('10101010', 2, 2, 2, 2, None)
-        case2 = Bit_Code('10101010', 2, 2, 2, 2, None)
-        case3 = Bit_Code('11101011', 2, 2, 2, 2, None)
-
-        self.assertTrue(case1 == case2)
-        self.assertFalse(case1 == case3)
-
-    def test_misreading():
-        self.assertTrue(False, msg="I need to make this still.")
-
+        self.assertTrue(np.allclose(code.code_matrix, np.ones((16,20)) / 20))
 
 if __name__ == '__main__':
     unittest.main()

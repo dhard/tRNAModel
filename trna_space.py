@@ -16,10 +16,10 @@ class TRNA_Space(object):
             raise ValueError("There must be as many tRNA names as there are tRNAs in the "
                              "mutation matrix.")
 
-        if not np.allclose(1.0, codon_trna_mapping.sum(axis=0)):
+        if not np.allclose(1.0, codon_trna_mapping.sum(axis=1)):
             raise ValueError("All rows must sum to 1 in the codon-tRNA mapping.")
             
-        if not np.allclose(1.0, trna_mutation_matrix.sum(axis=0)):
+        if not np.allclose(1.0, trna_mutation_matrix.sum(axis=1)):
             raise ValueError("All rows must sum to 1 in the mutation matrix.")
 
         self._codon_trna_mapping = codon_trna_mapping
