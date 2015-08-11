@@ -66,40 +66,42 @@ class Code(object):
         return self._trnas
 
     def _build_code_matrix(self):
-        codon_trna_mapping = np.zeros((self._trna_space.codon_trna_mapping.shape[0],
-                                       len(self._trnas)))
-        for i in xrange(len(self._trnas)):
-            codon_trna_mapping[:,i] = self._trna_space.codon_trna_mapping[:,self._trnas[i]]
+        # Grab all the rows/codons currently encoded from the full matrix
+        codon_trna_mapping = self._trna_space.codon_trna_mapping[self.trnas,:]
 
-        trna_aars_mapping = np.zeros((len(self._trnas), len(self._aarss)))
-
-        for i in xrange(len(self._aarss)):
-            trna_aars_mapping[:,i] = self._trna_space.trna_aars_mapping[:,self._aarss[i]]
-
-        aars_aa_mapping = np.zeros((len(self._aarss), self._aars_space.aars_aa_mapping.shape[1]))
-
-        for i in xrange(len(self._aarss)):
-            aars_aa_mapping[i,:] = self._aars_space.aars_aa_mapping[self._aarss[i],:]
+        # The mapping should have the same number of rows as encoded trnas and the same
+        # number of columns as potentially encodable trnas
+        assert codon_trna_mapping.shape == (len(self.trnas), self._trna_space.codon_trna_mapping.shape[1]), \
+            "The codon trna mapping has the wrong size."
 
         self._code_matrix = np.dot(np.dot(codon_trna_mapping,
-                                          trna_aars_mapping),
-                                   aars_aa_mapping)
+                                          self._trna_space.trna_aars_mapping),
+                                   self._aars_space.aars_aa_mapping)
 
         # TODO Implement misreading
         self._effective_code_matrix = self._code_matrix
 
-        assert self.code_matrix.shape == (self._trna_space.codon_trna_mapping.shape[0], \
-                                          self._aars_space.aars_aa_mapping.shape[1]) # #codons X #amino acids
+        # The number of encoded trnas serves as a proxy for the max number
+        # of encodable codons, i.e. the number of encodable codons if each 
+        # encoded trna encoded a unique codon
+        # The number of columns is just the # of amino acids in the system.
+        assert self.code_matrix.shape == (len(self.trnas), \
+                                          self._aars_space.aars_aa_mapping.shape[1]), \
+            "The code matrix is of the wrong dimensions."
 
-        assert np.allclose(1.0, self._coding_matrix.sum(axis=1)), \
+
+        codon_trna_mapping = np.zeros((self._trna_space.codon_trna_mapping.shape[0],
+                                       len(self._trnas)))
+
+        assert np.allclose(1.0, self._code_matrix.sum(axis=1)), \
             "The coding matrix's rows do not sum up to 1."
 
         assert np.allclose(1.0, self._effective_coding_matrix.sum(axis=1)), \
             "The effective coding matrix's rows do not sum up to 1."
-
+        
     def __hash__(self):
         # TODO Investigate if this has any obvious collisions
-        return hash(hash(self._aarss) + hash(self._trnas))
+        return hash(str(self))
 
     def __eq__(self, other):
         return hash(self) == hash(other)
