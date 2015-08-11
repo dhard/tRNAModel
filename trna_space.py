@@ -25,7 +25,7 @@ class TRNA_Space(object):
         self._codon_trna_mapping = codon_trna_mapping
         self._trna_aars_mapping = trna_aars_mapping
         self._mutation_matrix = trna_mutation_matrix
-        self._names = tuple(trna_names) # Force ordering and immutability
+        self._names = tuple(map(str, trna_names)) # Force ordering and immutability
 
         self._codon_trna_mapping.setflags(write=False)
         self._trna_aars_mapping.setflags(write=False)

@@ -42,7 +42,6 @@ class Code_Mutator(object):
             self._mutation_probabilities = {to_code:self.mutation_probability(to_code)
                                             for to_code in self.get_possible_codes()}
 
-            print len(self._mutation_probabilities.values())
             assert np.isclose(1.0, sum(self._mutation_probabilities.values())), \
                 "All mutation probabilities must sum up to 1."
 
@@ -52,10 +51,24 @@ class Code_Mutator(object):
         mu_prob = 0.0
 
         for from_aars, to_aars in zip(self._initial_code.aarss, to.aarss):
-            mu_prob += np.log(self._aars_mutation_matrix[from_aars][to_aars])
+            if not np.isclose(0, self._aars_mutation_matrix[from_aars][to_aars]):
+                mu_prob += np.log(self._aars_mutation_matrix[from_aars][to_aars])
+            else:
+                mu_prob = 0.0
+                break
+
+        if mu_prob == 0.0:
+            return 0
 
         for from_trna, to_trna in zip(self._initial_code.trnas, to.trnas):
-            mu_prob += np.log(self._trna_mutation_matrix[from_trna][to_trna])
+            if not np.isclose(0, self._trna_mutation_matrix[from_trna][to_trna]):
+                mu_prob += np.log(self._trna_mutation_matrix[from_trna][to_trna])
+            else:
+                mu_prob = 0.0
+                break
+
+        if mu_prob == 0.0:
+            return 0
 
         mu_prob = np.exp(mu_prob)
 

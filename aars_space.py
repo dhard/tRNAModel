@@ -17,7 +17,7 @@ class AARS_Space(object):
 
         self._aars_aa_mapping = aars_aa_mapping
         self._mutation_matrix = aars_mutation_matrix
-        self._names = tuple(aars_names) # Force ordering and immutability
+        self._names = tuple(map(str, aars_names)) # Force ordering and immutability
 
         self._aars_aa_mapping.setflags(write=False)
         self._mutation_matrix.setflags(write=False)
