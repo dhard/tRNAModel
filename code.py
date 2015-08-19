@@ -66,39 +66,26 @@ class Code(object):
         return self._trnas
 
     def _build_code_matrix(self):
-        # Grab all the rows/codons currently encoded from the full matrix
-        codon_trna_mapping = self._trna_space.codon_trna_mapping[self.trnas,:]
+        codons = self._trna_space.codons
+        aas = self._aars_space.aas
 
-        # The mapping should have the same number of rows as encoded trnas and the same
-        # number of columns as potentially encodable trnas
-        assert codon_trna_mapping.shape == (len(self.trnas), self._trna_space.codon_trna_mapping.shape[1]), \
-            "The codon trna mapping has the wrong size."
+        codon_trna_mapping = self._trna_space.get_codon_trna_map(self._trnas)
+
+        trna_aars_mapping = self._trna_space.get_trna_aars_map(self._trnas, self._aarss)
+
+        aars_aa_mapping = self._aars_space.get_aars_aa_map(self._aarss)
 
         self._code_matrix = np.dot(np.dot(codon_trna_mapping,
-                                          self._trna_space.trna_aars_mapping),
-                                   self._aars_space.aars_aa_mapping)
+                                          trna_aars_mapping),
+                                   aars_aa_mapping)
 
         # TODO Implement misreading
         self._effective_code_matrix = self._code_matrix
 
-        # The number of encoded trnas serves as a proxy for the max number
-        # of encodable codons, i.e. the number of encodable codons if each 
-        # encoded trna encoded a unique codon
-        # The number of columns is just the # of amino acids in the system.
-        assert self.code_matrix.shape == (len(self.trnas), \
-                                          self._aars_space.aars_aa_mapping.shape[1]), \
-            "The code matrix is of the wrong dimensions."
+        self._code_matrix.setflags(write=False)
+        self._effective_code_matrix.setflags(write=False)
 
 
-        codon_trna_mapping = np.zeros((self._trna_space.codon_trna_mapping.shape[0],
-                                       len(self._trnas)))
-
-        assert np.allclose(1.0, self._code_matrix.sum(axis=1)), \
-            "The coding matrix's rows do not sum up to 1."
-
-        assert np.allclose(1.0, self._effective_coding_matrix.sum(axis=1)), \
-            "The effective coding matrix's rows do not sum up to 1."
-        
     def __hash__(self):
         # TODO Investigate if this has any obvious collisions
         return hash(str(self))

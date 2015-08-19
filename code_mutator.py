@@ -17,6 +17,9 @@ class Code_Mutator(object):
         self._possible_codes = None
         self._mutation_probabilities = None
 
+        self._one_gene_possible_codes = None
+        self._one_gene_mutation_probabilities = None
+
     def get_possible_codes(self):
         if self._possible_codes is None:
             num_aarss = self._aars_mutation_matrix.shape[0]
@@ -46,6 +49,40 @@ class Code_Mutator(object):
                 "All mutation probabilities must sum up to 1."
 
         return self._mutation_probabilities
+
+    def get_one_gene_mutation_probabilities(self):
+        if self._one_gene_mutation_probabilities is None:
+            self._one_gene_mutation_probabilities = {to_code:self.mutation_probability(to_code)
+                                                     for to_code in self.get_one_gene_possible_codes()}
+
+            self._one_gene_mutation_probabilities[self._initial_code] = 1 - sum(self._one_gene_mutation_probabilities.values())
+
+        return self._one_gene_mutation_probabilities
+
+    def get_one_gene_possible_codes(self):
+        if self._one_gene_possible_codes is None:
+            trna_space = self._initial_code._trna_space
+            aars_space = self._initial_code._aars_space
+
+            self._one_gene_possible_codes = []
+
+            for i, trna in enumerate(self._initial_code.trnas):
+                for new_trna in xrange(trna_space.count):
+                    if trna_space.mutations_between(trna, new_trna) == 1:
+                        trnas = list(self._initial_code.trnas)
+                        trnas[i] = new_trna
+                        self._one_gene_possible_codes.append(Code(trnas, self._initial_code.aarss, trna_space,
+                                                                  aars_space))
+
+            for i, aars in enumerate(self._initial_code.aarss):
+                for new_aars in xrange(aars_space.count):
+                    if aars_space.mutations_between(aars, new_aars) == 1:
+                        aarss = list(self._initial_code.aarss)
+                        aarss[i] = new_aars
+                        self._one_gene_possible_codes.append(Code(self._initial_code.trnas, aarss, trna_space,
+                                                                  aars_space))
+
+        return self._one_gene_possible_codes
 
     def mutation_probability(self, to):
         mu_prob = 0.0

@@ -25,6 +25,24 @@ def get_uniform_mutation_matrix(size, mu):
 
     return mut_matrix
 
+def hamming_dist(from_, to, length):
+    dist = 0
+    for i in xrange(length):
+        if from_ & (2**i) != to & (2**i):
+            dist += 1
+
+    return dist
+
+def get_hamming_distance_mutation_matrix(length, mu):
+    mut_matrix = np.zeros((2**length, 2**length))
+    
+    for i in xrange(2**length):
+        for j in xrange(2**length):
+            diff = hamming_dist(i, j, length)
+            mut_matrix[i,j] = mu**diff * (1 - mu)**(length - diff)
+
+    return mut_matrix
+
 class _Model(object):
     __metaclass__ = ABCMeta
 
@@ -43,6 +61,68 @@ class _Model(object):
     def get_initial_code(self):
         pass
 
+class Test_Bit_Model(_Model):
+    def __init__(self, args, rng):
+        super(Test_Bit_Model, self).__init__(self, args)
+
+        def frac_hamming_dist(from_, to, length):
+            dist = 0
+            for i in xrange(length):
+                if from_ & (2**i) == to & (2**i):
+                    dist += 1
+
+            return dist / float(length)
+
+        def hamming_dist_8(from_, to):
+            return frac_hamming_dist(from_, to, 8)
+
+        def id_map(val):
+            return val
+
+        trnas = 4
+        aarss = 8
+        aas = 16
+        mu = .0001
+        msg_mu = .1
+        pop = 100
+        weights = [1] * aas
+        
+        starting_trnas = [0, 2, 2, 0]
+        starting_aarss = [5, 5, 3, 1]
+
+
+        trna_ids = ["trna_" + str(i) for i in xrange(trnas)]
+        codon_ids = ["codon_" + str(i) for i in xrange(trnas)]
+        aars_ids = ["aars_" + str(i) for i in xrange(aarss)]
+
+        aa_ids = ["aas_" + str(i) for i in xrange(aas)]
+        aa_vals = sorted([rng.random() for _ in xrange(aas)])
+
+        site_ids = ["site_" + str(i) for i in xrange(aas)]
+        site_vals = sorted([rng.random() for _ in xrange(aas)])
+
+        self._site_types = Ring_Site_Types(args.phi, zip(aa_ids, aa_vals),
+                                           zip(site_ids, site_vals), weights)
+
+        self._message_mutation_matrix = get_ring_mutation_matrix(len(trna_ids), msg_mu)
+
+        aars_mutation_matrix = get_hamming_distance_mutation_matrix(int(np.log2(aarss)), mu)
+        trna_mutation_matrix = get_hamming_distance_mutation_matrix(int(np.log2(trnas)), mu)
+
+        aars_space = AARS_Space(aars_ids, aa_ids, id_map, lambda aars1, aars2: hamming_dist(aars1, aars2, 3), aars_mutation_matrix)
+        trna_space = TRNA_Space(trna_ids, codon_ids, hamming_dist_8, id_map, lambda aars1, aars2: hamming_dist(aars1, aars2, 3), trna_mutation_matrix)
+        
+        self._initial_code = Code(starting_trnas, starting_aarss, trna_space, aars_space)
+
+    def get_site_types(self):
+        return self._site_types
+
+    def get_message_mutation_matrix(self):
+        return self._message_mutation_matrix
+
+    def get_initial_code(self):
+        return self._initial_code
+        
 
 class Bit_Model(_Model):
     def __init__(self, args, rng):

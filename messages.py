@@ -3,16 +3,21 @@ import numpy as np
 class Messages(object):
     def __init__(self, coding_matrix, fitness_matrix, message_mutation_matrix):
         if coding_matrix.shape[1] != fitness_matrix.shape[1]:
+            print coding_matrix.shape
+            print fitness_matrix.shape
             raise ValueError("There must be as many amino acids in the coding matrix as there are "
                              "in the fitness matrix.")
 
         if message_mutation_matrix.shape[0] != coding_matrix.shape[0] or \
            message_mutation_matrix.shape[1] != coding_matrix.shape[0]:
-            raise ValueError("The message mutation matrix must be square and have as many"
-                             "codons as the coding matrix.")
+            raise ValueError("The message mutation matrix must be square and have as many "
+                             "codons as the coding matrix. "
+                             "Expected {} Got {}".format(coding_matrix.shape[0], message_mutation_matrix.shape))
 
-        if not np.allclose(1.0, coding_matrix.sum(axis=1)):
-            raise ValueError("All rows in the coding matrix must sum to 1.")
+        # TODO: Determine if this should be the case
+        # It seems like they must be 1 or 0
+        #if not np.allclose(1.0, coding_matrix.sum(axis=1)):
+        #    raise ValueError("All rows in the coding matrix must sum to 1.")
 
         if not np.allclose(1.0, message_mutation_matrix.sum(axis=1)):
             raise ValueError("All rows in the message mutation matrix must sum to 1.")
@@ -68,7 +73,8 @@ class Messages(object):
 
         if codon_usage.shape != (num_sites, num_codons):
             raise ValueError("The codon usage matrix does not match the coding matrix "
-                             "or fitness matrix.")
+                             "or fitness matrix. "
+                             "Expected: {}, Got {}".format(codon_usage.shape, (num_sites, num_codons)))
 
         self._last_codon_usage = codon_usage
         self._last_fitness_contributions = np.zeros((num_sites, 1))
