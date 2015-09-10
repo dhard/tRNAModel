@@ -3,10 +3,10 @@ import numpy as np
 from random import Random
 
 from evolver import Evolver
-from models import Bit_Model, Test_Bit_Model
+from models import Bit_Model, Test_Bit_Model, Fifty_Bit_Model, Ring_Bit_Model
 
 if __name__ == "__main__":
-    model_names = ["bit", "test"]
+    model_names = ["bit", "test", "50bit", "Ring"]
     parser = argparse.ArgumentParser(description="Evolve tRNAs and AARSs in a cmc model.")
 
     parser.add_argument("-g", "--population-size", type=int, default=100,
@@ -59,25 +59,10 @@ if __name__ == "__main__":
         model = Bit_Model(args, rng)
     elif args.model_name == "test":
         model = Test_Bit_Model(args, rng)
-
-
-    # print model.get_site_types().fitness_matrix
-    # print model.get_message_mutation_matrix()
-    # print model.get_initial_code()
-    # print model.get_initial_code().code_matrix
-
-    # print model.get_initial_code()._trna_space.codon_trna_mapping
-    # print model.get_initial_code()._trna_space.trna_aars_mapping
-    # print model.get_initial_code()._trna_space.mutation_matrix
-
-    # print model.get_initial_code()._aars_space.aars_aa_mapping
-    # print model.get_initial_code()._aars_space.mutation_matrix
-
-    # print np.dot(np.dot(model.get_initial_code()._trna_space.codon_trna_mapping, 
-    #                    model.get_initial_code()._trna_space.trna_aars_mapping),
-    #              model.get_initial_code()._aars_space.aars_aa_mapping)
-
-    
+    elif args.model_name == "50bit":
+        model = Fifty_Bit_Model(args, rng)
+    elif args.model_name == "Ring":
+        model = Ring_Bit_Model(args, rng)
 
     evolver = Evolver(model.get_initial_code(), model.get_site_types(),
                       model.get_message_mutation_matrix(), args.population_size, rng)
@@ -86,13 +71,22 @@ if __name__ == "__main__":
     mutations = 0
     last_code = model.get_initial_code()
     while mutations < 10:
+        if evolver.frozen:
+            print "Code is frozen, stopping..."
+            break
+
         if last_code != evolver.current_code:
             last_code = evolver.current_code
             mutations += 1
 
             print steps, last_code
 
+            #print last_code.codon_trna_mapping
+            #print last_code.trna_aars_mapping
+            #print last_code.aars_aa_mapping
+
+            if 0 not in last_code.trnas and len(set(last_code.trnas)) == len(last_code.trnas):
+                quit()
+
         evolver.step_time()
         steps += 1
-    print evolver.current_code
-    print steps

@@ -15,7 +15,7 @@ class TRNA_Space(object):
 
         if self._trnas != trna_mutation_matrix.shape[0] or self._trnas != trna_mutation_matrix.shape[1]:
             raise ValueError("There must be as many tRNA names as there are tRNAs in the "
-                             "adjacency matrix.")
+                             "mutation matrix.")
 
         #if not np.allclose(1.0, codon_trna_mapping.sum(axis=1)):
         #    raise ValueError("All rows must sum to 1 in the codon-tRNA mapping.")
@@ -39,7 +39,7 @@ class TRNA_Space(object):
     def get_trna_aars_probability(self, trna, aars):
         prob = self._trna_aars_map(trna, aars)
 
-        assert 0 <= prob <= 1, "tRNA to AARS mapping probability must be in the range [0,1]."
+        assert 0 <= prob <= 1, "tRNA to AARS mapping probability must be in the range [0,1], got {}.".format(prob)
 
         return prob
 
@@ -92,3 +92,26 @@ class TRNA_Space(object):
     @property
     def codons(self):
         return self._codons
+
+class Id_TRNA_Space(TRNA_Space):
+    def __init__(self, trna_names, codon_names, trna_aars_map, trna_mutation_matrix):
+        self.bits = int(np.log2(len(trna_names)))
+
+        #trna_aars_map = lambda from_, to: self.hamming_dist(from_, to, self.bits) / float(self.bits)
+
+        super(Id_TRNA_Space, self).__init__(trna_names, codon_names,
+                                                trna_aars_map, None,
+                                                lambda from_, to: self.hamming_dist(from_, to, self.bits),
+                                                trna_mutation_matrix)
+
+    def get_codon_trna_map(self, trnas):
+        return np.diag([1] * len(trnas))
+
+    def hamming_dist(self, from_, to, length):
+        dist = 0
+        for i in xrange(length):
+            if from_ & (2**i) != to & (2**i):
+                dist += 1
+
+        return dist
+

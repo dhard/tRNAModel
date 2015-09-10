@@ -27,6 +27,10 @@ class Code(object):
         self._aars_space = aars_space
         self._trna_space = trna_space
 
+        self._codon_trna_mapping = None
+        self._trna_aars_mapping = None
+        self._aars_aa_mapping = None
+
     @property
     def code_matrix(self):
         if self._code_matrix is None:
@@ -40,6 +44,30 @@ class Code(object):
             self._build_code_matrix()
 
         return self._effective_code_matrix
+
+    @property
+    def codon_trna_mapping(self):
+        if self._codon_trna_mapping is None:
+            self._codon_trna_mapping = self._trna_space.get_codon_trna_map(self._trnas)
+            self._codon_trna_mapping.setflags(write=False)
+
+        return self._codon_trna_mapping
+
+    @property
+    def trna_aars_mapping(self):
+        if self._trna_aars_mapping is None:
+            self._trna_aars_mapping = self._trna_space.get_trna_aars_map(self._trnas, self._aarss)
+            self._trna_aars_mapping.setflags(write=False)
+
+        return self._trna_aars_mapping
+
+    @property
+    def aars_aa_mapping(self):
+        if self._aars_aa_mapping is None:
+            self._aars_aa_mapping = self._aars_space.get_aars_aa_map(self._aarss)
+            self._aars_aa_mapping.setflags(write=False)
+
+        return self._aars_aa_mapping
 
     @property
     def encoded_aarss(self):
@@ -66,25 +94,15 @@ class Code(object):
         return self._trnas
 
     def _build_code_matrix(self):
-        codons = self._trna_space.codons
-        aas = self._aars_space.aas
-
-        codon_trna_mapping = self._trna_space.get_codon_trna_map(self._trnas)
-
-        trna_aars_mapping = self._trna_space.get_trna_aars_map(self._trnas, self._aarss)
-
-        aars_aa_mapping = self._aars_space.get_aars_aa_map(self._aarss)
-
-        self._code_matrix = np.dot(np.dot(codon_trna_mapping,
-                                          trna_aars_mapping),
-                                   aars_aa_mapping)
+        self._code_matrix = np.dot(np.dot(self.codon_trna_mapping,
+                                          self.trna_aars_mapping),
+                                   self.aars_aa_mapping)
 
         # TODO Implement misreading
         self._effective_code_matrix = self._code_matrix
 
         self._code_matrix.setflags(write=False)
         self._effective_code_matrix.setflags(write=False)
-
 
     def __hash__(self):
         # TODO Investigate if this has any obvious collisions

@@ -85,29 +85,30 @@ class Code_Mutator(object):
         return self._one_gene_possible_codes
 
     def mutation_probability(self, to):
-        mu_prob = 0.0
+        mu_prob = 1.0
 
         for from_aars, to_aars in zip(self._initial_code.aarss, to.aarss):
             if not np.isclose(0, self._aars_mutation_matrix[from_aars][to_aars]):
-                mu_prob += np.log(self._aars_mutation_matrix[from_aars][to_aars])
+                mu_prob *= self._aars_mutation_matrix[from_aars][to_aars]
             else:
                 mu_prob = 0.0
                 break
 
+
         if mu_prob == 0.0:
-            return 0
+            return 0.0
 
         for from_trna, to_trna in zip(self._initial_code.trnas, to.trnas):
             if not np.isclose(0, self._trna_mutation_matrix[from_trna][to_trna]):
-                mu_prob += np.log(self._trna_mutation_matrix[from_trna][to_trna])
+                mu_prob *= self._trna_mutation_matrix[from_trna][to_trna]
             else:
                 mu_prob = 0.0
                 break
 
         if mu_prob == 0.0:
-            return 0
+            return 0.0
 
-        mu_prob = np.exp(mu_prob)
+        #mu_prob = np.exp(mu_prob)
 
         assert 0 <= mu_prob <= 1, "Mutation probability was not in the range [0,1]."
 

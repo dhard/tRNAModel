@@ -27,6 +27,8 @@ class Evolver(object):
         self._current_code_fitness = None
         self._code_mutator = None
 
+        self._frozen = False
+
     def _code_fitness(self, code, codon_usage = None):
         """ Gets the overall fitness of a code at the given codon usage,
             if no codon usage is given the codon usage of the 
@@ -83,10 +85,12 @@ class Evolver(object):
         fix_probability = self._fixation_probability(to)
         if fix_probability == 0.0:
             return 0
-
-        trans_probability = np.log(self._pop_size) + np.log(fix_probability) + \
-                            np.log(mutation_probability)
-        trans_probability = np.exp(trans_probability)
+        
+        trans_probability = self._pop_size * fix_probability * \
+                            mutation_probability
+        #trans_probability = np.log(self._pop_size) + np.log(fix_probability) + \
+        #                    np.log(mutation_probability)
+        #trans_probability = np.exp(trans_probability)
 
         assert 0 <= trans_probability <= 1, "Transition probability was not in the range [0,1]."
 
@@ -155,6 +159,9 @@ class Evolver(object):
     def step_time(self):
         """ This function steps one generation allowing the current code to
             potentially mutate into another code. """
+
+        #if self.frozen:
+        #    return
         
         transition_probabilities = self.get_transition_probabilities()
 
@@ -162,8 +169,14 @@ class Evolver(object):
         random_num = self._rng.random()
         code_changed = False
 
+        possible_transitions = 0
+
         for to_code in transition_probabilities:
             range_top = transition_probabilities[to_code] + range_bottom
+
+            # Avoid infinite loop
+            if transition_probabilities[to_code] > 0:
+                possible_transitions += 1
 
             if range_bottom <= random_num <= range_top:
                 code_changed = True
@@ -178,8 +191,13 @@ class Evolver(object):
 
             range_bottom = range_top
 
-        assert code_changed, "You used bad logic here double check it! {} {} {}".format(random_num, range_bottom, range_top)
+        #if possible_transitions <= 1:
+        #    self._frozen = True
 
     @property
     def current_code(self):
         return self._current_code
+
+    @property
+    def frozen(self):
+        return self._frozen
