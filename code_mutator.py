@@ -3,17 +3,14 @@ from itertools import product
 from code import Code
 
 class Code_Mutator(object):
-    def __init__(self, initial_code, aars_mutation_matrix, trna_mutation_matrix):
-        if not np.allclose(1.0, aars_mutation_matrix.sum(axis=1)):
-            raise ValueError("All rows in the aars mutation matrix must sum to 1.")
+    def __init__(self, initial_code, mu):
+        if not 0 <= mu <= 1:
+            raise RuntimeError("Mu must be in the range [0,1].")
 
-        if not np.allclose(1.0, trna_mutation_matrix.sum(axis=1)):
-            raise ValueError("All rows in the trna mutation matrix must sum to 1.")
-
+        self._mu = mu
         self._initial_code = initial_code
-        self._aars_mutation_matrix = aars_mutation_matrix
-        self._trna_mutation_matrix = trna_mutation_matrix
 
+        # Set values to None so they can be built as needed
         self._possible_codes = None
         self._mutation_probabilities = None
 
@@ -61,35 +58,63 @@ class Code_Mutator(object):
 
     def get_one_gene_possible_codes(self):
         if self._one_gene_possible_codes is None:
-            trna_space = self._initial_code._trna_space
-            aars_space = self._initial_code._aars_space
+            trna_space = self._initial_code.trna_space
+            aars_space = self._initial_code.aars_space
 
             self._one_gene_possible_codes = []
 
-            for i, trna in enumerate(self._initial_code.trnas):
-                for new_trna in xrange(trna_space.count):
-                    if trna_space.mutations_between(trna, new_trna) == 1:
+            neighbors = trna_space.mutational_neighbors(self._initial_code.trnas[0])
+            if neighbors != None:
+                i = 0
+                while i < len(initial_code.trnas):
+                    for new_trna in neighbors:
                         trnas = list(self._initial_code.trnas)
                         trnas[i] = new_trna
                         self._one_gene_possible_codes.append(Code(trnas, self._initial_code.aarss, trna_space,
                                                                   aars_space))
+                    i += 1
+                    neighbors = trna_space.mutational_neighbors(self._initial_code.trnas[i])
+            else:
+                for i, trna in enumerate(self._initial_code.trnas):
+                    for new_trna in xrange(trna_space.count):
+                        if trna_space.mutations_between(trna, new_trna) == 1:
+                            trnas = list(self._initial_code.trnas)
+                            trnas[i] = new_trna
+                            self._one_gene_possible_codes.append(Code(trnas, self._initial_code.aarss, trna_space,
+                                                                      aars_space))
 
-            for i, aars in enumerate(self._initial_code.aarss):
-                for new_aars in xrange(aars_space.count):
-                    if aars_space.mutations_between(aars, new_aars) == 1:
+            neighbors = aars_space.mutational_neighbors(self._initial_code.aarss[0])
+            if neighbors != None:
+                i = 0
+                while i < len(initial_code.aarss):
+                    for new_aars in neighbors:
                         aarss = list(self._initial_code.aarss)
                         aarss[i] = new_aars
                         self._one_gene_possible_codes.append(Code(self._initial_code.trnas, aarss, trna_space,
                                                                   aars_space))
+                    i += 1
+                    neighbors = aars_space.mutational_neighbors(self._initial_code.aarss[i])
+            else:
+                for i, aars in enumerate(self._initial_code.aarss):
+                    for new_aars in xrange(aars_space.count):
+                        if aars_space.mutations_between(aars, new_aars) == 1:
+                            aarss = list(self._initial_code.aarss)
+                            aarss[i] = new_aars
+                            self._one_gene_possible_codes.append(Code(self._initial_code.trnas, aarss, trna_space,
+                                                                      aars_space))
 
         return self._one_gene_possible_codes
 
     def mutation_probability(self, to):
+        trna_space = self._initial_code.trna_space
+        aars_space = self._initial_code.aars_space
+
         mu_prob = 1.0
 
         for from_aars, to_aars in zip(self._initial_code.aarss, to.aarss):
-            if not np.isclose(0, self._aars_mutation_matrix[from_aars][to_aars]):
-                mu_prob *= self._aars_mutation_matrix[from_aars][to_aars]
+            prob = aars_space.mutation_probability(from_aars, to_aars, self._mu)
+            if not np.isclose(0, prob):
+                mu_prob *= prob
             else:
                 mu_prob = 0.0
                 break
@@ -99,16 +124,15 @@ class Code_Mutator(object):
             return 0.0
 
         for from_trna, to_trna in zip(self._initial_code.trnas, to.trnas):
-            if not np.isclose(0, self._trna_mutation_matrix[from_trna][to_trna]):
-                mu_prob *= self._trna_mutation_matrix[from_trna][to_trna]
+            prob = trna_space.mutation_probability(from_trna, to_trna, self._mu)
+            if not np.isclose(0, prob):
+                mu_prob *= prob
             else:
                 mu_prob = 0.0
                 break
 
         if mu_prob == 0.0:
             return 0.0
-
-        #mu_prob = np.exp(mu_prob)
 
         assert 0 <= mu_prob <= 1, "Mutation probability was not in the range [0,1]."
 

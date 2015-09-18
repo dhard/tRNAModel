@@ -20,7 +20,7 @@ class _TRNA_Space(object):
             This function is used to optimize getting the mutational probabilities
             and if not overridden will cause mutations_between to be called for
             trna which is bad if the number of trnas is large. """
-        pass
+        return None
 
     @abstractmethod
     def get_codon_from_trna(self, trna):

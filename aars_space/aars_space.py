@@ -29,7 +29,7 @@ class _AARS_Space(object):
             This function is used to optimize getting the mutational probabilities
             and if not overridden will cause mutations_between to be called for
             aars which is bad if the number of aarss is large. """
-        pass
+        return None
 
     @abstractmethod
     def mutation_probability(self, from_, to, mu):

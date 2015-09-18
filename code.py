@@ -30,6 +30,7 @@ class Code(object):
         else:
             self._unencoded_trnas = None
 
+        # Set values to None so they can be built as needed
         self._code_matrix = None
         self._effective_code_matrix = None
         self._aars_space = aars_space
@@ -116,6 +117,15 @@ class Code(object):
     @property
     def trnas(self):
         return self._trnas
+
+    @property
+    def aars_space(self):
+        return self._aars_space
+
+    @property
+    def trna_space(self):
+        return self._trna_space
+
 
     def _build_code_matrix(self):
         self._code_matrix = np.dot(np.dot(self.codon_trna_mapping,
