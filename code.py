@@ -10,17 +10,25 @@ class Code(object):
         self._encoded_aarss = frozenset(aarss)
         self._encoded_trnas = frozenset(trnas)
 
-        possible_aarss = frozenset(range(aars_space.count))
-        possible_trnas = frozenset(range(trna_space.count))
-        
-        self._unencoded_aarss = frozenset(possible_aarss - self._encoded_aarss)
-        self._unencoded_trnas = frozenset(possible_trnas - self._encoded_trnas)
+        if aars_space.count < 1000:
+            # Only cache unencoded aarss if there isn't many
+            possible_aarss = frozenset(range(aars_space.count))
+            self._unencoded_aarss = frozenset(possible_aarss - self._encoded_aarss)
 
-        if not self._encoded_aarss.issubset(possible_aarss):
-            raise ValueError("All encoded AARSs must exist in the AARS space.")
+            if not self._encoded_aarss.issubset(possible_aarss):
+                raise ValueError("All encoded AARSs must exist in the AARS space.")
+        else:
+            self._unencoded_aarss = None
 
-        if not self._encoded_trnas.issubset(possible_trnas):
-            raise ValueError("All encoded tRNAs must exist in the tRNA space.")
+        if trna_space.count < 1000:
+            # Only cache unencoded trnas if there isn't many
+            possible_trnas = frozenset(range(trna_space.count))
+            self._unencoded_trnas = frozenset(possible_trnas - self._encoded_trnas)
+
+            if not self._encoded_trnas.issubset(possible_trnas):
+                raise ValueError("All encoded tRNAs must exist in the tRNA space.")
+        else:
+            self._unencoded_trnas = None
 
         self._code_matrix = None
         self._effective_code_matrix = None
@@ -79,10 +87,26 @@ class Code(object):
 
     @property
     def unencoded_aarss(self):
+        """ This function returns the set of all unencoded aarss. 
+            Which could be a very large set, so use this function
+            only if you know the number of unencoded aarss is low. """
+
+        if self._unencoded_aarss is None:
+            possible_aarss = frozenset(range(aars_space.count))
+            return frozenset(possible_aarss - self._encoded_aarss)
+            
         return self._unencoded_aarss
 
     @property
     def unencoded_trnas(self):
+        """ This function returns the set of all unencoded trnas. 
+            Which could be a very large set, so use this function
+            only if you know the number of unencoded trnas is low. """
+
+        if self._unencoded_trnas is None:
+            possible_trnas = frozenset(range(trna_space.count))
+            return frozenset(possible_trnas - self._encoded_trnas)
+            
         return self._unencoded_trnas
 
     @property
