@@ -3,16 +3,18 @@ from messages import Messages
 from code_mutator import Code_Mutator
 
 class Evolver(object):
-    def __init__(self, initial_code, site_types, message_mutation_matrix, pop_size, rng):
+    def __init__(self, initial_code, site_types, mu, message_mutation_matrix, pop_size, rng):
         if pop_size < 1:
             raise ValueError("The population size must be greater than 0.")
+
+        if not 0 <= mu <= 1:
+            raise RuntimeError("Mu must be in the range [0,1].")
 
         if initial_code._trna_space.codons != message_mutation_matrix.shape[0] or \
            initial_code._trna_space.codons != message_mutation_matrix.shape[1]:
             raise ValueError("The message mutation matrix must be square with {} "
                              "codons per side. It is currently {}".format(initial_code._trna_space.codons,
                                                                           message_mutation_matrix.shape))
-            
         
         self._current_code = initial_code
         self._message_mutation_matrix = message_mutation_matrix
@@ -20,6 +22,7 @@ class Evolver(object):
         self._site_weights = site_types.weights
         self._pop_size = pop_size
         self._rng = rng
+        self._mu = mu
 
         # All these values depend on the current code
         # and are created/destroyed as needed
@@ -142,9 +145,8 @@ class Evolver(object):
 
         # Keep things cached in case the code doesn't evolve over one step
         if self._code_mutator is None:
-            self._code_mutator = Code_Mutator(self._current_code,
-                                              self._current_code._aars_space.mutation_matrix,
-                                              self._current_code._trna_space.mutation_matrix)
+            self._code_mutator = Code_Mutator(self._current_code, self._mu)
+                                              
 
             mutant_prob = self._code_mutator.get_one_gene_mutation_probabilities()
 
