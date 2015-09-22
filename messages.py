@@ -3,8 +3,6 @@ import numpy as np
 class Messages(object):
     def __init__(self, coding_matrix, fitness_matrix, message_mutation_matrix):
         if coding_matrix.shape[1] != fitness_matrix.shape[1]:
-            print coding_matrix.shape
-            print fitness_matrix.shape
             raise ValueError("There must be as many amino acids in the coding matrix as there are "
                              "in the fitness matrix.")
 

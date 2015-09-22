@@ -3,7 +3,7 @@ import numpy as np
 from collections import OrderedDict
 from copy import copy
 
-class _Site_Types(object):
+class Site_Types(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, phi, amino_acids, sites, weights):

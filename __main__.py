@@ -1,9 +1,7 @@
 import argparse
-import numpy as np
 from random import Random
 
-from evolver import Evolver
-from models import Bit_Model, Test_Bit_Model, Fifty_Bit_Model, Ring_Bit_Model
+from models import Test_Model
 
 if __name__ == "__main__":
     model_names = ["bit", "test", "50bit", "Ring"]
@@ -53,40 +51,8 @@ if __name__ == "__main__":
     rng = Random()
     rng.seed(args.seed)
 
-    model = None
+    model = Test_Model(args, rng)
 
-    if args.model_name == "bit":
-        model = Bit_Model(args, rng)
-    elif args.model_name == "test":
-        model = Test_Bit_Model(args, rng)
-    elif args.model_name == "50bit":
-        model = Fifty_Bit_Model(args, rng)
-    elif args.model_name == "Ring":
-        model = Ring_Bit_Model(args, rng)
-
-    evolver = Evolver(model.get_initial_code(), model.get_site_types(),
-                      model.get_message_mutation_matrix(), args.population_size, rng)
-
-    steps = 0
-    mutations = 0
-    last_code = model.get_initial_code()
-    while mutations < 10:
-        if evolver.frozen:
-            print "Code is frozen, stopping..."
-            break
-
-        if last_code != evolver.current_code:
-            last_code = evolver.current_code
-            mutations += 1
-
-            print steps, last_code
-
-            #print last_code.codon_trna_mapping
-            #print last_code.trna_aars_mapping
-            #print last_code.aars_aa_mapping
-
-            if 0 not in last_code.trnas and len(set(last_code.trnas)) == len(last_code.trnas):
-                quit()
-
-        evolver.step_time()
-        steps += 1
+    model.get_summary()
+    model.run()
+    model.get_output()

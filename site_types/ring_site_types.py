@@ -1,6 +1,8 @@
-import _Site_Types
+import numpy as np
 
-class Ring_Site_Types(_Site_Types):
+from site_types import Site_Types
+
+class Ring_Site_Types(Site_Types):
     def __init__(self, phi, amino_acids, sites, weights):
         super(Ring_Site_Types, self).__init__(phi, amino_acids, sites, weights)
 

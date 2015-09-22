@@ -1,7 +1,7 @@
 import numpy as np
 from abc import ABCMeta, abstractmethod
 
-class _AARS_Space(object):
+class AARS_Space(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, aars_names, aa_names):
@@ -23,7 +23,7 @@ class _AARS_Space(object):
             to the second. """
         pass
 
-    def mutational_neigbhors(self, from_):
+    def mutational_neighbors(self, from_):
         """ An optional function that should return a list of all
             the aarss that are one mutation away from the passed aars.
             This function is used to optimize getting the mutational probabilities

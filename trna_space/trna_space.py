@@ -1,6 +1,7 @@
 import numpy as np
+from abc import ABCMeta, abstractmethod
 
-class _TRNA_Space(object):
+class TRNA_Space(object):
     def __init__(self, trna_names, codon_names):
         """ This function takes a list or indexable ([] operator) class
             of determinable length of trna names and codon names. """
@@ -14,7 +15,7 @@ class _TRNA_Space(object):
             to the second. """
         pass
 
-    def mutational_neigbhors(self, from_):
+    def mutational_neighbors(self, from_):
         """ An optional function that should return a list of all
             the trnas that are one mutation away from the passed trna.
             This function is used to optimize getting the mutational probabilities

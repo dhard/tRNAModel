@@ -17,8 +17,8 @@ class Evolver(object):
                                                                           message_mutation_matrix.shape))
         
         self._current_code = initial_code
-        self._message_mutation_matrix = message_mutation_matrix
         self._fitness_matrix = site_types.fitness_matrix
+        self._message_mutation_matrix = message_mutation_matrix
         self._site_weights = site_types.weights
         self._pop_size = pop_size
         self._rng = rng
